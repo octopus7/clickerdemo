@@ -156,6 +156,7 @@ public static class UpgradePanelPrefabBuilder
         scrollRect.viewport = viewport.GetComponent<RectTransform>();
         scrollRect.content = contentRect;
 
+        var clickUpgradeItemView = CreateClickUpgradeItem(content.transform);
         var autoIncomeUpgradeItemView = CreateAutoIncomeUpgradeItem(content.transform);
 
         title.transform.SetAsLastSibling();
@@ -170,6 +171,7 @@ public static class UpgradePanelPrefabBuilder
         var serializedPanel = new SerializedObject(panelController);
         serializedPanel.FindProperty("panelRoot").objectReferenceValue = root;
         serializedPanel.FindProperty("closeButton").objectReferenceValue = closeButtonComponent;
+        serializedPanel.FindProperty("clickUpgradeItemView").objectReferenceValue = clickUpgradeItemView;
         serializedPanel.FindProperty("autoIncomeUpgradeItemView").objectReferenceValue = autoIncomeUpgradeItemView;
         serializedPanel.FindProperty("startHidden").boolValue = true;
         serializedPanel.ApplyModifiedPropertiesWithoutUndo();
@@ -241,6 +243,80 @@ public static class UpgradePanelPrefabBuilder
         buttonLabel.text = "Upgrade";
 
         var itemView = item.AddComponent<AutoIncomeUpgradeItemView>();
+        var serializedItemView = new SerializedObject(itemView);
+        serializedItemView.FindProperty("currentLevelText").objectReferenceValue = levelText;
+        serializedItemView.FindProperty("detailsText").objectReferenceValue = detailText;
+        serializedItemView.FindProperty("upgradeButton").objectReferenceValue = upgradeButton;
+        serializedItemView.FindProperty("upgradeButtonLabel").objectReferenceValue = buttonLabel;
+        serializedItemView.ApplyModifiedPropertiesWithoutUndo();
+
+        return itemView;
+    }
+
+    private static ClickUpgradeItemView CreateClickUpgradeItem(Transform parent)
+    {
+        var item = CreateUiObject("ClickUpgradeItem", parent, new Vector2(0f, 132f), Vector2.zero, new Vector2(0f, 1f), new Vector2(1f, 1f));
+        var itemRect = item.GetComponent<RectTransform>();
+        itemRect.pivot = new Vector2(0.5f, 1f);
+
+        var itemImage = item.AddComponent<Image>();
+        itemImage.color = new Color(0.16f, 0.21f, 0.28f, 1f);
+
+        var layoutElement = item.AddComponent<LayoutElement>();
+        layoutElement.minHeight = 132f;
+        layoutElement.preferredHeight = 132f;
+
+        var titleTextObject = CreateUiObject("Name", item.transform, Vector2.zero, Vector2.zero, new Vector2(0f, 0.5f), new Vector2(0.7f, 1f));
+        var titleRect = titleTextObject.GetComponent<RectTransform>();
+        titleRect.offsetMin = new Vector2(16f, 0f);
+        titleRect.offsetMax = new Vector2(0f, -8f);
+        var titleText = titleTextObject.AddComponent<Text>();
+        titleText.font = Resources.GetBuiltinResource<Font>(BuiltinFontPath);
+        titleText.fontSize = 28;
+        titleText.alignment = TextAnchor.MiddleLeft;
+        titleText.color = Color.white;
+        titleText.text = "Click Power";
+
+        var levelTextObject = CreateUiObject("CurrentLevel", item.transform, Vector2.zero, Vector2.zero, new Vector2(0.55f, 0.5f), new Vector2(1f, 1f));
+        var levelRect = levelTextObject.GetComponent<RectTransform>();
+        levelRect.offsetMin = new Vector2(0f, 0f);
+        levelRect.offsetMax = new Vector2(-16f, -8f);
+        var levelText = levelTextObject.AddComponent<Text>();
+        levelText.font = Resources.GetBuiltinResource<Font>(BuiltinFontPath);
+        levelText.fontSize = 24;
+        levelText.alignment = TextAnchor.MiddleRight;
+        levelText.color = new Color(0.9f, 0.95f, 1f, 1f);
+        levelText.text = "Current Lv.1";
+
+        var detailTextObject = CreateUiObject("Details", item.transform, Vector2.zero, Vector2.zero, new Vector2(0f, 0f), new Vector2(1f, 0.5f));
+        var detailRect = detailTextObject.GetComponent<RectTransform>();
+        detailRect.offsetMin = new Vector2(16f, 8f);
+        detailRect.offsetMax = new Vector2(-170f, 0f);
+        var detailText = detailTextObject.AddComponent<Text>();
+        detailText.font = Resources.GetBuiltinResource<Font>(BuiltinFontPath);
+        detailText.fontSize = 22;
+        detailText.alignment = TextAnchor.MiddleLeft;
+        detailText.color = new Color(1f, 0.83f, 0.6f, 1f);
+        detailText.text = "Effect: +1/click   Next Cost: 10";
+
+        var upgradeButtonObject = CreateUiObject("UpgradeButton", item.transform, new Vector2(140f, 48f), new Vector2(-16f, 8f), new Vector2(1f, 0f), new Vector2(1f, 0f));
+        var upgradeButtonRect = upgradeButtonObject.GetComponent<RectTransform>();
+        upgradeButtonRect.pivot = new Vector2(1f, 0f);
+
+        var upgradeButtonImage = upgradeButtonObject.AddComponent<Image>();
+        upgradeButtonImage.color = new Color(0.78f, 0.48f, 0.19f, 1f);
+        var upgradeButton = upgradeButtonObject.AddComponent<Button>();
+        upgradeButton.targetGraphic = upgradeButtonImage;
+
+        var buttonLabelObject = CreateUiObject("Label", upgradeButtonObject.transform, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.one);
+        var buttonLabel = buttonLabelObject.AddComponent<Text>();
+        buttonLabel.font = Resources.GetBuiltinResource<Font>(BuiltinFontPath);
+        buttonLabel.fontSize = 24;
+        buttonLabel.alignment = TextAnchor.MiddleCenter;
+        buttonLabel.color = Color.white;
+        buttonLabel.text = "Upgrade";
+
+        var itemView = item.AddComponent<ClickUpgradeItemView>();
         var serializedItemView = new SerializedObject(itemView);
         serializedItemView.FindProperty("currentLevelText").objectReferenceValue = levelText;
         serializedItemView.FindProperty("detailsText").objectReferenceValue = detailText;

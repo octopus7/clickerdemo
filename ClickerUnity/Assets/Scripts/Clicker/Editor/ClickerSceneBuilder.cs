@@ -40,6 +40,7 @@ public static class ClickerSceneBuilder
 
         var currencyText = CreateCurrencyText(canvas.transform);
         var clickButton = CreateClickButton(canvas.transform);
+        var clickButtonLabel = clickButton.GetComponentInChildren<Text>(true);
         var upgradeButton = CreateUpgradeButton(canvas.transform);
 
         var managerObject = new GameObject("GameManager");
@@ -55,12 +56,18 @@ public static class ClickerSceneBuilder
         var serializedClicker = new SerializedObject(clickerGame);
         serializedClicker.FindProperty("currencyText").objectReferenceValue = currencyText;
         serializedClicker.FindProperty("clickButton").objectReferenceValue = clickButton;
+        serializedClicker.FindProperty("clickButtonLabelText").objectReferenceValue = clickButtonLabel;
         serializedClicker.FindProperty("startingCurrency").intValue = 0;
-        serializedClicker.FindProperty("clickValue").intValue = 1;
+        serializedClicker.FindProperty("startingClickLevel").intValue = 1;
+        serializedClicker.FindProperty("clickValuePerLevel").intValue = 1;
+        serializedClicker.FindProperty("clickUpgradeBaseCost").intValue = 10;
+        serializedClicker.FindProperty("clickUpgradeCostGrowth").floatValue = 1.55f;
         serializedClicker.FindProperty("startingAutoIncomeLevel").intValue = 1;
         serializedClicker.FindProperty("autoIncomePerLevel").intValue = 1;
         serializedClicker.FindProperty("autoIncomeUpgradeBaseCost").intValue = 10;
         serializedClicker.FindProperty("autoIncomeUpgradeCostGrowth").floatValue = 1.6f;
+        serializedClicker.FindProperty("toastPoolPrewarmCount").intValue = 96;
+        serializedClicker.FindProperty("toastPoolMaxCount").intValue = 256;
         serializedClicker.ApplyModifiedPropertiesWithoutUndo();
 
         if (upgradePanelController != null)

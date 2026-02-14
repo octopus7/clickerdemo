@@ -8,6 +8,7 @@ namespace ClickerUnity
         [SerializeField] private GameObject panelRoot;
         [SerializeField] private Button closeButton;
         [SerializeField] private ClickerGame clickerGame;
+        [SerializeField] private ClickUpgradeItemView clickUpgradeItemView;
         [SerializeField] private AutoIncomeUpgradeItemView autoIncomeUpgradeItemView;
         [SerializeField] private bool startHidden = true;
 
@@ -26,6 +27,11 @@ namespace ClickerUnity
             if (autoIncomeUpgradeItemView != null)
             {
                 autoIncomeUpgradeItemView.Bind(clickerGame);
+            }
+
+            if (clickUpgradeItemView != null)
+            {
+                clickUpgradeItemView.Bind(clickerGame);
             }
 
             if (closeButton != null)
@@ -79,6 +85,11 @@ namespace ClickerUnity
             {
                 autoIncomeUpgradeItemView.Refresh();
             }
+
+            if (clickUpgradeItemView != null)
+            {
+                clickUpgradeItemView.Refresh();
+            }
         }
 
         public void Hide()
@@ -97,6 +108,11 @@ namespace ClickerUnity
             if (autoIncomeUpgradeItemView != null)
             {
                 autoIncomeUpgradeItemView.Bind(clickerGame);
+            }
+
+            if (clickUpgradeItemView != null)
+            {
+                clickUpgradeItemView.Bind(clickerGame);
             }
         }
     }
