@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,14 +9,21 @@ namespace ClickerUnity
     public class ClickerGame : MonoBehaviour
     {
         private const string CurrencyKey = "clicker.currency";
+        private const string AutoIncomeLevelKey = "clicker.auto_income_level";
         private const string LastSeenUnixTimeKey = "clicker.last_seen_unix";
         private const string BuiltinFontPath = "LegacyRuntime.ttf";
+
+        public event Action EconomyChanged;
 
         [SerializeField] private Text currencyText;
         [SerializeField] private Button clickButton;
         [SerializeField] private int startingCurrency = 0;
         [SerializeField] private int clickValue = 1;
-        [SerializeField] private int autoIncomePerSecond = 1;
+        [Header("Auto Income Upgrade")]
+        [SerializeField] private int startingAutoIncomeLevel = 1;
+        [SerializeField] private int autoIncomePerLevel = 1;
+        [SerializeField] private int autoIncomeUpgradeBaseCost = 10;
+        [SerializeField] private float autoIncomeUpgradeCostGrowth = 1.6f;
         [Header("Auto Toast")]
         [SerializeField] private RectTransform toastParent;
         [SerializeField] private Vector2 autoToastSpawnOffset = new Vector2(0f, 60f);
@@ -26,9 +34,24 @@ namespace ClickerUnity
         [SerializeField] private Color autoToastColor = new Color(0.47f, 1f, 0.6f, 1f);
 
         private int currency;
+        private int autoIncomeLevel;
+        private int autoIncomePerSecond;
         private int lastOfflineReward;
         private long lastSeenUnixSeconds;
         private float autoIncomeTimer;
+        private readonly List<AutoIncomeToastView> autoIncomeToastPool = new List<AutoIncomeToastView>();
+
+        public int AutoIncomeLevel => autoIncomeLevel;
+        public int AutoIncomePerSecond => autoIncomePerSecond;
+
+        private sealed class AutoIncomeToastView
+        {
+            public GameObject GameObject;
+            public RectTransform RectTransform;
+            public CanvasGroup CanvasGroup;
+            public Text Text;
+            public Coroutine AnimationCoroutine;
+        }
 
         private void Awake()
         {
@@ -40,7 +63,7 @@ namespace ClickerUnity
                 clickButton.onClick.AddListener(OnClickEarn);
             }
 
-            RefreshCurrencyText();
+            NotifyEconomyChanged();
         }
 
         private void OnDestroy()
@@ -49,6 +72,28 @@ namespace ClickerUnity
             {
                 clickButton.onClick.RemoveListener(OnClickEarn);
             }
+
+            for (var i = 0; i < autoIncomeToastPool.Count; i++)
+            {
+                var toastView = autoIncomeToastPool[i];
+                if (toastView == null)
+                {
+                    continue;
+                }
+
+                if (toastView.AnimationCoroutine != null)
+                {
+                    StopCoroutine(toastView.AnimationCoroutine);
+                    toastView.AnimationCoroutine = null;
+                }
+
+                if (toastView.GameObject != null)
+                {
+                    Destroy(toastView.GameObject);
+                }
+            }
+
+            autoIncomeToastPool.Clear();
         }
 
         private void Update()
@@ -75,7 +120,7 @@ namespace ClickerUnity
 
             currency += gain;
             ShowAutoIncomeToast(gain);
-            RefreshCurrencyText();
+            NotifyEconomyChanged();
         }
 
         private void OnApplicationPause(bool pauseStatus)
@@ -88,7 +133,7 @@ namespace ClickerUnity
 
             LoadState();
             ApplyOfflineReward();
-            RefreshCurrencyText();
+            NotifyEconomyChanged();
         }
 
         private void OnApplicationQuit()
@@ -99,7 +144,43 @@ namespace ClickerUnity
         public void OnClickEarn()
         {
             currency += clickValue;
-            RefreshCurrencyText();
+            NotifyEconomyChanged();
+        }
+
+        public int GetAutoIncomeUpgradeCost()
+        {
+            var safeBaseCost = Mathf.Max(1, autoIncomeUpgradeBaseCost);
+            var safeGrowth = Mathf.Max(1.01f, autoIncomeUpgradeCostGrowth);
+            var exponent = Mathf.Max(0, autoIncomeLevel - 1);
+
+            var calculatedCost = safeBaseCost * Mathf.Pow(safeGrowth, exponent);
+            if (calculatedCost >= int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
+            return Mathf.Max(1, Mathf.RoundToInt(calculatedCost));
+        }
+
+        public bool CanAfford(int cost)
+        {
+            return currency >= Mathf.Max(0, cost);
+        }
+
+        public bool TryUpgradeAutoIncome()
+        {
+            var cost = GetAutoIncomeUpgradeCost();
+            if (!CanAfford(cost))
+            {
+                return false;
+            }
+
+            currency -= cost;
+            autoIncomeLevel += 1;
+            RecalculateAutoIncomePerSecond();
+            SaveState();
+            NotifyEconomyChanged();
+            return true;
         }
 
         private void ApplyOfflineReward()
@@ -126,6 +207,11 @@ namespace ClickerUnity
                 ? PlayerPrefs.GetInt(CurrencyKey)
                 : startingCurrency;
 
+            autoIncomeLevel = PlayerPrefs.HasKey(AutoIncomeLevelKey)
+                ? Mathf.Max(1, PlayerPrefs.GetInt(AutoIncomeLevelKey))
+                : Mathf.Max(1, startingAutoIncomeLevel);
+            RecalculateAutoIncomePerSecond();
+
             if (PlayerPrefs.HasKey(LastSeenUnixTimeKey))
             {
                 var savedUnixText = PlayerPrefs.GetString(LastSeenUnixTimeKey);
@@ -144,8 +230,22 @@ namespace ClickerUnity
         {
             lastSeenUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             PlayerPrefs.SetInt(CurrencyKey, currency);
+            PlayerPrefs.SetInt(AutoIncomeLevelKey, autoIncomeLevel);
             PlayerPrefs.SetString(LastSeenUnixTimeKey, lastSeenUnixSeconds.ToString());
             PlayerPrefs.Save();
+        }
+
+        private void RecalculateAutoIncomePerSecond()
+        {
+            var safeLevel = Mathf.Max(1, autoIncomeLevel);
+            var safePerLevel = Mathf.Max(1, autoIncomePerLevel);
+            autoIncomePerSecond = safeLevel * safePerLevel;
+        }
+
+        private void NotifyEconomyChanged()
+        {
+            RefreshCurrencyText();
+            EconomyChanged?.Invoke();
         }
 
         private void ShowAutoIncomeToast(int amount)
@@ -161,21 +261,33 @@ namespace ClickerUnity
                 return;
             }
 
-            var toastObject = new GameObject(
-                "AutoIncomeToast",
-                typeof(RectTransform),
-                typeof(CanvasGroup),
-                typeof(Text));
-            toastObject.transform.SetParent(parent, false);
+            var toastView = GetOrCreateToastView(parent);
+            if (toastView == null)
+            {
+                return;
+            }
 
-            var toastRect = toastObject.GetComponent<RectTransform>();
+            if (toastView.AnimationCoroutine != null)
+            {
+                StopCoroutine(toastView.AnimationCoroutine);
+                toastView.AnimationCoroutine = null;
+            }
+
+            if (toastView.RectTransform.parent != parent)
+            {
+                toastView.RectTransform.SetParent(parent, false);
+            }
+
+            var toastRect = toastView.RectTransform;
+            toastView.GameObject.layer = parent.gameObject.layer;
+            toastView.GameObject.SetActive(true);
             toastRect.anchorMin = new Vector2(0.5f, 0.5f);
             toastRect.anchorMax = new Vector2(0.5f, 0.5f);
             toastRect.pivot = new Vector2(0.5f, 0.5f);
             toastRect.sizeDelta = autoToastSize;
             toastRect.anchoredPosition = GetToastSpawnPosition(parent);
 
-            var toastText = toastObject.GetComponent<Text>();
+            var toastText = toastView.Text;
             toastText.font = currencyText != null && currencyText.font != null
                 ? currencyText.font
                 : Resources.GetBuiltinResource<Font>(BuiltinFontPath);
@@ -186,9 +298,8 @@ namespace ClickerUnity
             toastText.color = autoToastColor;
             toastText.text = $"+{amount}";
 
-            var canvasGroup = toastObject.GetComponent<CanvasGroup>();
-            canvasGroup.alpha = 0f;
-            StartCoroutine(AnimateAutoIncomeToast(toastObject, toastRect, canvasGroup, autoToastDuration, autoToastRiseDistance));
+            toastView.CanvasGroup.alpha = 0f;
+            toastView.AnimationCoroutine = StartCoroutine(AnimateAutoIncomeToast(toastView, autoToastDuration, autoToastRiseDistance));
         }
 
         private RectTransform ResolveToastParent()
@@ -216,14 +327,52 @@ namespace ClickerUnity
             return autoToastSpawnOffset;
         }
 
+        private AutoIncomeToastView GetOrCreateToastView(RectTransform parent)
+        {
+            for (var i = 0; i < autoIncomeToastPool.Count; i++)
+            {
+                var pooledToast = autoIncomeToastPool[i];
+                if (pooledToast != null && pooledToast.GameObject != null && !pooledToast.GameObject.activeSelf)
+                {
+                    return pooledToast;
+                }
+            }
+
+            var toastObject = new GameObject(
+                "AutoIncomeToast",
+                typeof(RectTransform),
+                typeof(CanvasGroup),
+                typeof(Text));
+            toastObject.transform.SetParent(parent, false);
+            toastObject.layer = parent.gameObject.layer;
+            toastObject.SetActive(false);
+
+            var toastView = new AutoIncomeToastView
+            {
+                GameObject = toastObject,
+                RectTransform = toastObject.GetComponent<RectTransform>(),
+                CanvasGroup = toastObject.GetComponent<CanvasGroup>(),
+                Text = toastObject.GetComponent<Text>(),
+                AnimationCoroutine = null
+            };
+
+            autoIncomeToastPool.Add(toastView);
+            return toastView;
+        }
+
         private IEnumerator AnimateAutoIncomeToast(
-            GameObject toastObject,
-            RectTransform toastRect,
-            CanvasGroup canvasGroup,
+            AutoIncomeToastView toastView,
             float duration,
             float riseDistance)
         {
+            if (toastView == null || toastView.GameObject == null || toastView.RectTransform == null || toastView.CanvasGroup == null)
+            {
+                yield break;
+            }
+
             var elapsed = 0f;
+            var toastRect = toastView.RectTransform;
+            var canvasGroup = toastView.CanvasGroup;
             var startPosition = toastRect.anchoredPosition;
             var safeDuration = Mathf.Max(0.15f, duration);
             var safeRiseDistance = Mathf.Max(0f, riseDistance);
@@ -249,10 +398,13 @@ namespace ClickerUnity
                 yield return null;
             }
 
-            if (toastObject != null)
+            if (toastView.GameObject != null)
             {
-                Destroy(toastObject);
+                canvasGroup.alpha = 0f;
+                toastView.GameObject.SetActive(false);
             }
+
+            toastView.AnimationCoroutine = null;
         }
 
         private static float EaseOutCubic(float t)

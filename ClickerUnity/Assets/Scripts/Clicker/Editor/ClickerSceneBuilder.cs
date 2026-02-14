@@ -15,12 +15,17 @@ public static class ClickerSceneBuilder
     private const string ScenePath = "Assets/Scenes/ClickerScene.unity";
     private const string BuiltinFontPath = "LegacyRuntime.ttf";
 
-    [MenuItem("Tools/Create Clicker Scene (Fresh)")]
-    public static void CreateFreshClickerScene()
+    [MenuItem("Tools/Create Clicker Scene (Fresh)", false, 101)]
+    public static void CreateFreshClickerSceneMenu()
     {
-        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        CreateFreshClickerScene(true, true);
+    }
+
+    public static bool CreateFreshClickerScene(bool showDialog, bool askToSaveCurrentScenes)
+    {
+        if (askToSaveCurrentScenes && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
         {
-            return;
+            return false;
         }
 
         EnsureSceneFolder();
@@ -35,17 +40,40 @@ public static class ClickerSceneBuilder
 
         var currencyText = CreateCurrencyText(canvas.transform);
         var clickButton = CreateClickButton(canvas.transform);
+        var upgradeButton = CreateUpgradeButton(canvas.transform);
 
         var managerObject = new GameObject("GameManager");
         var clickerGame = managerObject.AddComponent<ClickerGame>();
+        var upgradePanelButtonBinder = managerObject.AddComponent<UpgradePanelButtonBinder>();
+
+        UpgradePanelController upgradePanelController;
+        var hasUpgradePanelPrefab = UpgradePanelPrefabBuilder.TryInstantiatePrefabInScene(
+            canvas.transform,
+            uiLayer,
+            out upgradePanelController);
 
         var serializedClicker = new SerializedObject(clickerGame);
         serializedClicker.FindProperty("currencyText").objectReferenceValue = currencyText;
         serializedClicker.FindProperty("clickButton").objectReferenceValue = clickButton;
         serializedClicker.FindProperty("startingCurrency").intValue = 0;
         serializedClicker.FindProperty("clickValue").intValue = 1;
-        serializedClicker.FindProperty("autoIncomePerSecond").intValue = 1;
+        serializedClicker.FindProperty("startingAutoIncomeLevel").intValue = 1;
+        serializedClicker.FindProperty("autoIncomePerLevel").intValue = 1;
+        serializedClicker.FindProperty("autoIncomeUpgradeBaseCost").intValue = 10;
+        serializedClicker.FindProperty("autoIncomeUpgradeCostGrowth").floatValue = 1.6f;
         serializedClicker.ApplyModifiedPropertiesWithoutUndo();
+
+        if (upgradePanelController != null)
+        {
+            var serializedPanel = new SerializedObject(upgradePanelController);
+            serializedPanel.FindProperty("clickerGame").objectReferenceValue = clickerGame;
+            serializedPanel.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        ConfigureUpgradeButtonBinding(
+            upgradePanelButtonBinder,
+            upgradeButton,
+            hasUpgradePanelPrefab ? upgradePanelController : null);
 
         EditorSceneManager.MarkSceneDirty(scene);
 
@@ -54,15 +82,24 @@ public static class ClickerSceneBuilder
 
         if (!sceneSaved)
         {
-            EditorUtility.DisplayDialog("Clicker Scene", $"Scene save failed: {ScenePath}", "OK");
-            return;
+            if (showDialog)
+            {
+                EditorUtility.DisplayDialog("Clicker Scene", $"Scene save failed: {ScenePath}", "OK");
+            }
+
+            return false;
         }
 
-        EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath));
-        EditorUtility.DisplayDialog("Clicker Scene", $"Fresh scene created: {ScenePath}", "OK");
+        if (showDialog)
+        {
+            EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath));
+            EditorUtility.DisplayDialog("Clicker Scene", $"Fresh scene created: {ScenePath}", "OK");
+        }
+
+        return true;
     }
 
-    [MenuItem("Tools/Modify Clicker Scene (Partial)")]
+    [MenuItem("Tools/Modify Clicker Scene (Partial)", false, 220)]
     public static void ModifyClickerScenePartial()
     {
         EditorUtility.DisplayDialog(
@@ -200,6 +237,39 @@ public static class ClickerSceneBuilder
         return button;
     }
 
+    private static Button CreateUpgradeButton(Transform parent)
+    {
+        var buttonObject = CreateCenteredUiObject("UpgradeButton", parent, new Vector2(0f, -200f), new Vector2(320f, 100f));
+        var buttonImage = buttonObject.AddComponent<Image>();
+        buttonImage.color = new Color(0.21f, 0.42f, 0.71f, 1f);
+
+        var button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = buttonImage;
+        var buttonColors = button.colors;
+        buttonColors.highlightedColor = new Color(0.28f, 0.51f, 0.82f, 1f);
+        buttonColors.pressedColor = new Color(0.17f, 0.33f, 0.57f, 1f);
+        button.colors = buttonColors;
+
+        var labelObject = new GameObject("Label", typeof(RectTransform));
+        labelObject.transform.SetParent(buttonObject.transform, false);
+        labelObject.layer = buttonObject.layer;
+
+        var labelRect = labelObject.GetComponent<RectTransform>();
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
+
+        var labelText = labelObject.AddComponent<Text>();
+        labelText.font = Resources.GetBuiltinResource<Font>(BuiltinFontPath);
+        labelText.fontSize = 38;
+        labelText.alignment = TextAnchor.MiddleCenter;
+        labelText.color = Color.white;
+        labelText.text = "Upgrades";
+
+        return button;
+    }
+
     private static GameObject CreateCenteredUiObject(string objectName, Transform parent, Vector2 anchoredPosition, Vector2 size)
     {
         var uiObject = new GameObject(objectName, typeof(RectTransform));
@@ -247,6 +317,25 @@ public static class ClickerSceneBuilder
             stack.Clear();
             stack.Add(overlayCamera);
         }
+    }
+
+    private static void ConfigureUpgradeButtonBinding(
+        UpgradePanelButtonBinder upgradePanelButtonBinder,
+        Button upgradeButton,
+        UpgradePanelController panelController)
+    {
+        var serializedBinder = new SerializedObject(upgradePanelButtonBinder);
+        serializedBinder.FindProperty("openPanelButton").objectReferenceValue = upgradeButton;
+        serializedBinder.FindProperty("panelController").objectReferenceValue = panelController;
+        serializedBinder.ApplyModifiedPropertiesWithoutUndo();
+
+        if (panelController != null)
+        {
+            return;
+        }
+
+        upgradeButton.interactable = false;
+        Debug.LogWarning($"Upgrade panel prefab not found at {UpgradePanelPrefabBuilder.PrefabPath}. Panel hook skipped.");
     }
 
     private static void EnsureSceneFolder()
