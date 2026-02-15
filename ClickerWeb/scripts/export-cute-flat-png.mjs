@@ -12,6 +12,7 @@ const jobs = [
   { input: "click-dough.svg", output: "click-dough.png", width: 512, height: 512 },
   { input: "mascot-tiger.svg", output: "mascot-tiger.png", width: 384, height: 384 },
   { input: "stage-dough.svg", output: "stage-dough.png", width: 128, height: 128 },
+  { input: "stage-shape.svg", output: "stage-shape.png", width: 128, height: 128 },
   { input: "stage-steam.svg", output: "stage-steam.png", width: 128, height: 128 },
   { input: "stage-pack.svg", output: "stage-pack.png", width: 128, height: 128 },
   { input: "stage-dispatch.svg", output: "stage-dispatch.png", width: 128, height: 128 },

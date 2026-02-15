@@ -1,10 +1,11 @@
-export const STAGES = ["dough", "steam", "pack", "dispatch"] as const;
+export const STAGES = ["dough", "shape", "steam", "pack", "dispatch"] as const;
 
 export type Stage = (typeof STAGES)[number];
 
 export interface GameState {
   gold: number;
   dough: number;
+  shaped: number;
   steamed: number;
   packed: number;
   sellQueue: number;

@@ -19,20 +19,32 @@
             <h1>호랑이 떡공장</h1>
           </div>
         </div>
-        <div class="gold-wrap panel-chip">
-          <img class="coin-icon" src="/assets/cute-flat/coin-nyang.svg" alt="" />
-          <p class="label">보유 자금</p>
-          <p id="gold" class="gold">0 냥</p>
+
+        <div class="topbar-right">
+          <div class="gold-wrap panel-chip">
+            <img class="coin-icon" src="/assets/cute-flat/coin-nyang.svg" alt="" />
+            <p class="label">보유 자금</p>
+            <p id="gold" class="gold">0 냥</p>
+          </div>
+          <div class="hud-actions">
+            <button id="stats-toggle" class="hud-button">공정현황</button>
+            <button id="upgrades-toggle" class="hud-button">업그레이드</button>
+          </div>
         </div>
       </header>
 
       <p id="offline-note" class="offline-note hidden"></p>
 
-      <main class="layout-grid">
-        <section class="panel click-panel">
-          <h2>반죽 터치</h2>
+      <main class="main-focus">
+        <section class="panel control-dock">
+          <h2>반죽 지휘</h2>
           <div class="click-hero">
-            <img id="dough-visual" class="dough-visual" src="/assets/cute-flat/click-dough.svg" alt="반죽" />
+            <img
+              id="dough-visual"
+              class="dough-visual"
+              src="/assets/cute-flat/click-dough.svg"
+              alt="반죽"
+            />
             <p class="dough-hint">호랑이와 함께 반죽을 치대서 생산을 밀어줘요</p>
           </div>
           <button id="click-button" class="big-action">반죽 치대기</button>
@@ -40,36 +52,76 @@
 
           <div class="queue-box">
             <p class="label">판매 큐</p>
-            <p id="sell-queue" class="queue-value">0</p>
+            <p id="sell-queue" class="queue-value">0 개</p>
             <button id="flush-button" class="flush-button">판매 Flush</button>
           </div>
-          <p id="flush-feedback" class="muted"></p>
-        </section>
+          <p id="flash-message" class="muted"></p>
 
-        <section class="panel pipeline-panel">
-          <h2>공정 현황</h2>
-          <div id="stage-metrics" class="stage-metrics"></div>
-        </section>
-
-        <section class="panel upgrade-panel">
-          <h2>업그레이드</h2>
-          <div id="upgrade-list" class="upgrade-list"></div>
-          <div class="brand-box">
-            <button id="brand-button" class="brand-button"></button>
-            <p id="brand-level" class="muted"></p>
-          </div>
-        </section>
-
-        <section class="panel system-panel">
-          <h2>시스템</h2>
           <div class="system-actions">
             <button id="save-button">저장</button>
             <button id="reset-button" class="danger">초기화</button>
           </div>
           <p id="save-status" class="muted">자동저장 5초</p>
         </section>
+
+        <section class="panel factory-panel">
+          <div class="factory-head">
+            <div>
+              <p class="eyebrow">Factory View</p>
+              <h2>호랑이 작업 라인</h2>
+            </div>
+            <p class="factory-note">떡이 벨트를 타고 지나가며 공정마다 상태가 바뀝니다.</p>
+          </div>
+          <div class="factory-scene">
+            <div id="station-row" class="station-row"></div>
+            <div id="factory-belt" class="factory-belt">
+              <div id="checkpoint-1" class="belt-checkpoint checkpoint-1">
+                <span class="checkpoint-glow"></span>
+                <span id="checkpoint-burst-1" class="checkpoint-burst"></span>
+              </div>
+              <div id="checkpoint-2" class="belt-checkpoint checkpoint-2">
+                <span class="checkpoint-glow"></span>
+                <span id="checkpoint-burst-2" class="checkpoint-burst"></span>
+              </div>
+              <div id="checkpoint-3" class="belt-checkpoint checkpoint-3">
+                <span class="checkpoint-glow"></span>
+                <span id="checkpoint-burst-3" class="checkpoint-burst"></span>
+              </div>
+              <div id="checkpoint-4" class="belt-checkpoint checkpoint-4">
+                <span class="checkpoint-glow"></span>
+                <span id="checkpoint-burst-4" class="checkpoint-burst"></span>
+              </div>
+              <div id="belt-items-layer" class="belt-items-layer"></div>
+            </div>
+            <p class="factory-flow-hint">좌측 반죽 -> 빚기 -> 찜 -> 포장 -> 우측 출하</p>
+          </div>
+        </section>
       </main>
     </div>
+
+    <div id="overlay-backdrop" class="overlay-backdrop hidden"></div>
+
+    <aside id="upgrade-drawer" class="overlay-drawer" aria-hidden="true">
+      <header class="overlay-head">
+        <h2>업그레이드</h2>
+        <button id="upgrade-close" class="overlay-close">닫기</button>
+      </header>
+      <div id="upgrade-list" class="upgrade-list"></div>
+      <div class="brand-box">
+        <button id="brand-button" class="brand-button"></button>
+        <p id="brand-level" class="muted"></p>
+      </div>
+    </aside>
+
+    <section id="stats-modal" class="overlay-modal hidden" aria-hidden="true">
+      <div class="panel stats-shell">
+        <header class="overlay-head">
+          <h2>공정현황</h2>
+          <button id="stats-close" class="overlay-close">닫기</button>
+        </header>
+        <div id="stage-metrics" class="stage-metrics"></div>
+      </div>
+    </section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

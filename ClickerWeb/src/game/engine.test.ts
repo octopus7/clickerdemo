@@ -17,6 +17,7 @@ describe("engine", () => {
 
     expect(state.sellQueue).toBeGreaterThan(0);
     expect(state.dough).toBeGreaterThanOrEqual(0);
+    expect(state.shaped).toBeGreaterThanOrEqual(0);
     expect(state.steamed).toBeGreaterThanOrEqual(0);
     expect(state.packed).toBeGreaterThanOrEqual(0);
   });

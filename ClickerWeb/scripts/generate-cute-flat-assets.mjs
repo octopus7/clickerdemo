@@ -78,6 +78,15 @@ const files = {
   <circle cx="84" cy="70" r="6" fill="#eac7a2"/>
 </svg>
 `,
+  "stage-shape.svg": `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect x="12" y="24" width="104" height="80" rx="18" fill="#f5d2ae"/>
+  <path d="M28 78 C28 58 46 46 64 46 C82 46 100 58 100 78 C100 92 86 102 64 102 C42 102 28 92 28 78 Z" fill="#ffe8ce" stroke="#dcb58e" stroke-width="4"/>
+  <path d="M44 74 C50 68 58 64 64 64 C70 64 78 68 84 74" stroke="#e1bf98" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="51" cy="80" r="3" fill="#f2c9a0"/>
+  <circle cx="77" cy="82" r="3" fill="#f2c9a0"/>
+</svg>
+`,
   "stage-steam.svg": `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <rect x="16" y="60" width="96" height="44" rx="16" fill="#e98e54"/>
@@ -127,6 +136,119 @@ const files = {
 </svg>
 `
 };
+
+const TIGER_STAGE_STYLE = {
+  dough: {
+    band: "#f4dfc5",
+    toolMain: "#ffe7c8",
+    toolStroke: "#d8b18a"
+  },
+  shape: {
+    band: "#f1d9be",
+    toolMain: "#ffe0bd",
+    toolStroke: "#cb9a71"
+  },
+  steam: {
+    band: "#f6b591",
+    toolMain: "#f29b61",
+    toolStroke: "#b76034"
+  },
+  pack: {
+    band: "#e3c3a2",
+    toolMain: "#d5a77a",
+    toolStroke: "#9e6b42"
+  },
+  dispatch: {
+    band: "#ffd19f",
+    toolMain: "#f0914b",
+    toolStroke: "#985126"
+  }
+};
+
+const TIGER_FRAMES = [
+  { arm: 0, bob: 0, tail: 0, toolY: 0 },
+  { arm: -6, bob: -2, tail: 3, toolY: -3 },
+  { arm: 6, bob: 1, tail: -2, toolY: 2 }
+];
+
+function toolShape(stage, style, toolY) {
+  if (stage === "dough") {
+    return `<circle cx="158" cy="${120 + toolY}" r="10" fill="${style.toolMain}" stroke="${style.toolStroke}" stroke-width="3"/>`;
+  }
+  if (stage === "shape") {
+    return `
+      <path d="M146 ${122 + toolY} C146 ${112 + toolY} 155 ${106 + toolY} 160 ${106 + toolY} C165 ${106 + toolY} 174 ${112 + toolY} 174 ${122 + toolY} C174 ${129 + toolY} 168 ${134 + toolY} 160 ${134 + toolY} C152 ${134 + toolY} 146 ${129 + toolY} 146 ${122 + toolY} Z" fill="${style.toolMain}" stroke="${style.toolStroke}" stroke-width="3"/>
+      <path d="M152 ${122 + toolY} C154 ${118 + toolY} 158 ${116 + toolY} 160 ${116 + toolY} C162 ${116 + toolY} 166 ${118 + toolY} 168 ${122 + toolY}" stroke="${style.toolStroke}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    `;
+  }
+  if (stage === "steam") {
+    return `
+      <rect x="148" y="${110 + toolY}" width="22" height="14" rx="7" fill="${style.toolMain}" stroke="${style.toolStroke}" stroke-width="3"/>
+      <path d="M154 ${106 + toolY} C151 ${102 + toolY} 151 ${98 + toolY} 154 ${95 + toolY}" stroke="${style.toolStroke}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M163 ${106 + toolY} C160 ${102 + toolY} 160 ${98 + toolY} 163 ${95 + toolY}" stroke="${style.toolStroke}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    `;
+  }
+  if (stage === "pack") {
+    return `<rect x="148" y="${111 + toolY}" width="21" height="18" rx="3" fill="${style.toolMain}" stroke="${style.toolStroke}" stroke-width="3"/>`;
+  }
+  return `
+    <rect x="146" y="${112 + toolY}" width="24" height="14" rx="3" fill="${style.toolMain}" stroke="${style.toolStroke}" stroke-width="3"/>
+    <circle cx="152" cy="${130 + toolY}" r="3.5" fill="${style.toolStroke}"/>
+    <circle cx="164" cy="${130 + toolY}" r="3.5" fill="${style.toolStroke}"/>
+  `;
+}
+
+function createTigerWorkerFrame(stage, frameIndex) {
+  const frame = TIGER_FRAMES[frameIndex];
+  const style = TIGER_STAGE_STYLE[stage];
+  const armOffset = frame.arm;
+  const bob = frame.bob;
+  const tool = toolShape(stage, style, frame.toolY);
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <ellipse cx="96" cy="168" rx="56" ry="16" fill="#bc8a62" opacity="0.25"/>
+  <g transform="translate(0 ${bob})">
+    <path d="M44 122 C34 116 28 106 30 98 C34 103 42 106 50 106" fill="none" stroke="#9d5b32" stroke-width="6" stroke-linecap="round"/>
+    <path d="M48 123 C36 114 30 103 33 93 C38 99 46 102 54 102" fill="none" stroke="#f08a40" stroke-width="8" stroke-linecap="round"/>
+    <ellipse cx="96" cy="84" rx="46" ry="50" fill="#f08a40"/>
+    <ellipse cx="72" cy="48" rx="14" ry="18" fill="#f08a40"/>
+    <ellipse cx="120" cy="48" rx="14" ry="18" fill="#f08a40"/>
+    <ellipse cx="72" cy="52" rx="6" ry="8" fill="#ffd3b6"/>
+    <ellipse cx="120" cy="52" rx="6" ry="8" fill="#ffd3b6"/>
+    <ellipse cx="96" cy="90" rx="28" ry="30" fill="#fff4e7"/>
+    <rect x="66" y="64" width="60" height="12" rx="6" fill="#2f2117"/>
+    <rect x="70" y="68" width="20" height="6" rx="3" fill="#fff4e7"/>
+    <rect x="102" y="68" width="20" height="6" rx="3" fill="#fff4e7"/>
+    <circle cx="82" cy="87" r="3.3" fill="#2f2117"/>
+    <circle cx="110" cy="87" r="3.3" fill="#2f2117"/>
+    <path d="M96 90 L90 99 H102 Z" fill="#2f2117"/>
+    <path d="M84 104 C88 108 104 108 108 104" fill="none" stroke="#2f2117" stroke-width="3.2" stroke-linecap="round"/>
+    <ellipse cx="72" cy="96" rx="6" ry="4" fill="#ffb28f"/>
+    <ellipse cx="120" cy="96" rx="6" ry="4" fill="#ffb28f"/>
+
+    <ellipse cx="${63 + armOffset}" cy="121" rx="12" ry="9" fill="#f08a40"/>
+    <ellipse cx="${129 + armOffset}" cy="121" rx="12" ry="9" fill="#f08a40"/>
+
+    <rect x="68" y="118" width="56" height="22" rx="10" fill="${style.band}" stroke="#d2ad87" stroke-width="3"/>
+    <rect x="74" y="124" width="44" height="5" rx="2.5" fill="#cc9a73"/>
+
+    <rect x="72" y="139" width="16" height="16" rx="7" fill="#f08a40"/>
+    <rect x="104" y="139" width="16" height="16" rx="7" fill="#f08a40"/>
+    <ellipse cx="80" cy="157" rx="14" ry="6" fill="#f5b47d"/>
+    <ellipse cx="112" cy="157" rx="14" ry="6" fill="#f5b47d"/>
+
+    ${tool}
+  </g>
+</svg>
+`;
+}
+
+for (const stage of Object.keys(TIGER_STAGE_STYLE)) {
+  for (let frameIndex = 0; frameIndex < 3; frameIndex += 1) {
+    files[`tiger-${stage}-${frameIndex}.svg`] = createTigerWorkerFrame(stage, frameIndex);
+  }
+}
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });

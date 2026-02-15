@@ -9,13 +9,15 @@ export const CLICK_DOUGH_GAIN = 1;
 
 export const STAGE_LABELS: Record<Stage, string> = {
   dough: "반죽",
-  steam: "찜/성형",
+  shape: "빚기",
+  steam: "찜",
   pack: "포장",
   dispatch: "출하"
 };
 
 export const STAGE_ICONS: Record<Stage, string> = {
   dough: "🥣",
+  shape: "🥟",
   steam: "♨️",
   pack: "📦",
   dispatch: "🚛"
@@ -23,14 +25,16 @@ export const STAGE_ICONS: Record<Stage, string> = {
 
 export const BASE_STAGE_RATE: Record<Stage, number> = {
   dough: 1.35,
-  steam: 1.0,
+  shape: 1.08,
+  steam: 0.94,
   pack: 0.82,
   dispatch: 0.72
 };
 
 export const TIGER_BASE_COST: Record<Stage, number> = {
   dough: 22,
-  steam: 36,
+  shape: 32,
+  steam: 44,
   pack: 58,
   dispatch: 78
 };
@@ -39,7 +43,8 @@ export const TIGER_COST_GROWTH = 1.28;
 
 export const MACHINE_BASE_COST: Record<Stage, number> = {
   dough: 64,
-  steam: 92,
+  shape: 82,
+  steam: 98,
   pack: 128,
   dispatch: 170
 };

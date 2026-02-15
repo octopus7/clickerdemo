@@ -40,17 +40,20 @@ export function createInitialState(): GameState {
   return {
     gold: 30,
     dough: 0,
+    shaped: 0,
     steamed: 0,
     packed: 0,
     sellQueue: 0,
     tigers: {
       dough: 1,
+      shape: 1,
       steam: 1,
       pack: 1,
       dispatch: 1
     },
     machineLevels: {
       dough: 0,
+      shape: 0,
       steam: 0,
       pack: 0,
       dispatch: 0
@@ -67,6 +70,7 @@ export function normalizeLoadedState(input: unknown): GameState {
   return {
     gold: sanitizeNumber(source.gold, fallback.gold, 0),
     dough: sanitizeNumber(source.dough, fallback.dough, 0),
+    shaped: sanitizeNumber(source.shaped, fallback.shaped, 0),
     steamed: sanitizeNumber(source.steamed, fallback.steamed, 0),
     packed: sanitizeNumber(source.packed, fallback.packed, 0),
     sellQueue: sanitizeNumber(source.sellQueue, fallback.sellQueue, 0),
@@ -88,6 +92,7 @@ export function getStageRate(state: GameState, stage: Stage): number {
 export function getRates(state: GameState): Record<Stage, number> {
   return {
     dough: getStageRate(state, "dough"),
+    shape: getStageRate(state, "shape"),
     steam: getStageRate(state, "steam"),
     pack: getStageRate(state, "pack"),
     dispatch: getStageRate(state, "dispatch")
@@ -158,8 +163,12 @@ export function simulateProduction(state: GameState, seconds: number): void {
   const doughGain = getStageRate(state, "dough") * seconds;
   state.dough += doughGain;
 
-  const steamedGain = Math.min(state.dough, getStageRate(state, "steam") * seconds);
-  state.dough -= steamedGain;
+  const shapedGain = Math.min(state.dough, getStageRate(state, "shape") * seconds);
+  state.dough -= shapedGain;
+  state.shaped += shapedGain;
+
+  const steamedGain = Math.min(state.shaped, getStageRate(state, "steam") * seconds);
+  state.shaped -= steamedGain;
   state.steamed += steamedGain;
 
   const packedGain = Math.min(state.steamed, getStageRate(state, "pack") * seconds);
