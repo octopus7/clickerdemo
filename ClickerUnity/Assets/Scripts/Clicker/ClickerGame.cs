@@ -32,6 +32,18 @@ namespace ClickerUnity
         [SerializeField] private int autoIncomePerLevel = 1;
         [SerializeField] private int autoIncomeUpgradeBaseCost = 10;
         [SerializeField] private float autoIncomeUpgradeCostGrowth = 1.6f;
+        [Header("Offline Reward")]
+        [SerializeField] private float offlineRewardCapHours = 8f;
+        [SerializeField] private bool logOfflineRewardSummary = true;
+        [Header("Offline Reward UI")]
+        [SerializeField] private Text offlineRewardNoticeText;
+        [SerializeField] private Vector2 offlineNoticePosition = new Vector2(0f, 320f);
+        [SerializeField] private Vector2 offlineNoticeSize = new Vector2(960f, 120f);
+        [SerializeField] private int offlineNoticeFontSize = 34;
+        [SerializeField] private float offlineNoticeHoldDuration = 2.8f;
+        [SerializeField] private float offlineNoticeFadeDuration = 0.45f;
+        [SerializeField] private Color offlineNoticeColor = new Color(0.99f, 0.84f, 0.45f, 1f);
+        [SerializeField] private Color offlineNoticeCapReachedColor = new Color(1f, 0.58f, 0.22f, 1f);
         [Header("Auto Toast")]
         [SerializeField] private int toastPoolPrewarmCount = 96;
         [SerializeField] private int toastPoolMaxCount = 256;
@@ -56,8 +68,15 @@ namespace ClickerUnity
         private int autoIncomeLevel;
         private int autoIncomePerSecond;
         private int lastOfflineReward;
+        private bool lastOfflineRewardWasTimeCapped;
+        private long lastOfflineElapsedSeconds;
+        private long lastOfflineAppliedSeconds;
+        private long lastOfflineCapSeconds;
         private long lastSeenUnixSeconds;
         private float autoIncomeTimer;
+        private bool hasReceivedPauseEvent;
+        private Coroutine offlineRewardNoticeCoroutine;
+        private CanvasGroup offlineRewardNoticeCanvasGroup;
         private RectTransform toastPoolRoot;
         private readonly List<AutoIncomeToastView> autoIncomeToastPool = new List<AutoIncomeToastView>();
 
@@ -98,6 +117,7 @@ namespace ClickerUnity
 
             PrewarmToastPool();
             NotifyEconomyChanged();
+            ShowOfflineRewardNoticeIfNeeded();
         }
 
         private void OnDestroy()
@@ -161,13 +181,20 @@ namespace ClickerUnity
         {
             if (pauseStatus)
             {
+                hasReceivedPauseEvent = true;
                 SaveState();
+                return;
+            }
+
+            if (!hasReceivedPauseEvent)
+            {
                 return;
             }
 
             LoadState();
             ApplyOfflineReward();
             NotifyEconomyChanged();
+            ShowOfflineRewardNoticeIfNeeded();
         }
 
         private void OnApplicationQuit()
@@ -252,19 +279,265 @@ namespace ClickerUnity
         private void ApplyOfflineReward()
         {
             var nowUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var elapsedSeconds = Mathf.Max(0L, nowUnixSeconds - lastSeenUnixSeconds);
+            var elapsedSeconds = Math.Max(0L, nowUnixSeconds - lastSeenUnixSeconds);
+            var appliedElapsedSeconds = elapsedSeconds;
+            var capSeconds = GetOfflineRewardCapSeconds();
+            var rewardWasTimeCapped = false;
+
+            if (capSeconds > 0 && appliedElapsedSeconds > capSeconds)
+            {
+                appliedElapsedSeconds = capSeconds;
+                rewardWasTimeCapped = true;
+            }
+
             lastOfflineReward = 0;
 
-            if (autoIncomePerSecond > 0 && elapsedSeconds > 0)
+            if (autoIncomePerSecond > 0 && appliedElapsedSeconds > 0)
             {
-                var rewardLong = elapsedSeconds * autoIncomePerSecond;
+                var rewardLong = appliedElapsedSeconds * autoIncomePerSecond;
                 var cappedReward = rewardLong > int.MaxValue ? int.MaxValue : (int)rewardLong;
                 currency += cappedReward;
                 lastOfflineReward = cappedReward;
             }
+            else
+            {
+                lastOfflineReward = 0;
+            }
 
+            lastOfflineRewardWasTimeCapped = rewardWasTimeCapped;
+            lastOfflineElapsedSeconds = elapsedSeconds;
+            lastOfflineAppliedSeconds = appliedElapsedSeconds;
+            lastOfflineCapSeconds = capSeconds;
+
+            LogOfflineRewardSummary(
+                elapsedSeconds,
+                appliedElapsedSeconds,
+                capSeconds,
+                rewardWasTimeCapped,
+                lastOfflineReward);
             lastSeenUnixSeconds = nowUnixSeconds;
             SaveState();
+        }
+
+        private long GetOfflineRewardCapSeconds()
+        {
+            var safeHours = Mathf.Max(0f, offlineRewardCapHours);
+            return (long)Math.Round(safeHours * 3600d);
+        }
+
+        private void ShowOfflineRewardNoticeIfNeeded()
+        {
+            if (lastOfflineReward <= 0)
+            {
+                if (offlineRewardNoticeCoroutine == null)
+                {
+                    HideOfflineRewardNoticeImmediate();
+                }
+
+                return;
+            }
+
+            var noticeText = ResolveOfflineRewardNoticeText();
+            if (noticeText == null)
+            {
+                return;
+            }
+
+            var firstLine = $"+{lastOfflineReward} Gold (Offline)";
+            var secondLine = lastOfflineRewardWasTimeCapped && lastOfflineCapSeconds > 0
+                ? $"Cap reached: {FormatDuration(lastOfflineElapsedSeconds)} -> {FormatDuration(lastOfflineAppliedSeconds)} (Cap {FormatDuration(lastOfflineCapSeconds)})"
+                : $"Elapsed: {FormatDuration(lastOfflineAppliedSeconds)}";
+
+            noticeText.text = $"{firstLine}\n{secondLine}";
+            noticeText.color = lastOfflineRewardWasTimeCapped ? offlineNoticeCapReachedColor : offlineNoticeColor;
+            noticeText.gameObject.SetActive(true);
+
+            if (offlineRewardNoticeCanvasGroup == null)
+            {
+                offlineRewardNoticeCanvasGroup = GetOrAddOfflineNoticeCanvasGroup(noticeText);
+            }
+
+            if (offlineRewardNoticeCanvasGroup != null)
+            {
+                offlineRewardNoticeCanvasGroup.alpha = 1f;
+            }
+
+            if (offlineRewardNoticeCoroutine != null)
+            {
+                StopCoroutine(offlineRewardNoticeCoroutine);
+                offlineRewardNoticeCoroutine = null;
+            }
+
+            offlineRewardNoticeCoroutine = StartCoroutine(AnimateOfflineRewardNotice());
+        }
+
+        private Text ResolveOfflineRewardNoticeText()
+        {
+            if (offlineRewardNoticeText != null)
+            {
+                if (offlineRewardNoticeCanvasGroup == null)
+                {
+                    offlineRewardNoticeCanvasGroup = GetOrAddOfflineNoticeCanvasGroup(offlineRewardNoticeText);
+                }
+
+                return offlineRewardNoticeText;
+            }
+
+            var parent = ResolveToastParent();
+            if (parent == null)
+            {
+                return null;
+            }
+
+            var noticeObject = new GameObject(
+                "OfflineRewardNoticeText",
+                typeof(RectTransform),
+                typeof(CanvasGroup),
+                typeof(Text));
+            noticeObject.transform.SetParent(parent, false);
+            noticeObject.layer = parent.gameObject.layer;
+            noticeObject.SetActive(false);
+
+            var noticeRect = noticeObject.GetComponent<RectTransform>();
+            noticeRect.anchorMin = new Vector2(0.5f, 0.5f);
+            noticeRect.anchorMax = new Vector2(0.5f, 0.5f);
+            noticeRect.pivot = new Vector2(0.5f, 0.5f);
+            noticeRect.anchoredPosition = offlineNoticePosition;
+            noticeRect.sizeDelta = offlineNoticeSize;
+
+            offlineRewardNoticeCanvasGroup = noticeObject.GetComponent<CanvasGroup>();
+            offlineRewardNoticeCanvasGroup.alpha = 0f;
+
+            offlineRewardNoticeText = noticeObject.GetComponent<Text>();
+            offlineRewardNoticeText.font = currencyText != null && currencyText.font != null
+                ? currencyText.font
+                : Resources.GetBuiltinResource<Font>(BuiltinFontPath);
+            offlineRewardNoticeText.fontSize = offlineNoticeFontSize;
+            offlineRewardNoticeText.alignment = TextAnchor.MiddleCenter;
+            offlineRewardNoticeText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            offlineRewardNoticeText.verticalOverflow = VerticalWrapMode.Overflow;
+            return offlineRewardNoticeText;
+        }
+
+        private CanvasGroup GetOrAddOfflineNoticeCanvasGroup(Text noticeText)
+        {
+            if (noticeText == null)
+            {
+                return null;
+            }
+
+            var canvasGroup = noticeText.GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
+            {
+                return canvasGroup;
+            }
+
+            return noticeText.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        private void HideOfflineRewardNoticeImmediate()
+        {
+            if (offlineRewardNoticeCoroutine != null)
+            {
+                StopCoroutine(offlineRewardNoticeCoroutine);
+                offlineRewardNoticeCoroutine = null;
+            }
+
+            if (offlineRewardNoticeCanvasGroup != null)
+            {
+                offlineRewardNoticeCanvasGroup.alpha = 0f;
+            }
+
+            if (offlineRewardNoticeText != null)
+            {
+                offlineRewardNoticeText.gameObject.SetActive(false);
+            }
+        }
+
+        private IEnumerator AnimateOfflineRewardNotice()
+        {
+            if (offlineRewardNoticeText == null)
+            {
+                offlineRewardNoticeCoroutine = null;
+                yield break;
+            }
+
+            if (offlineRewardNoticeCanvasGroup == null)
+            {
+                offlineRewardNoticeCanvasGroup = GetOrAddOfflineNoticeCanvasGroup(offlineRewardNoticeText);
+            }
+
+            if (offlineRewardNoticeCanvasGroup == null)
+            {
+                offlineRewardNoticeCoroutine = null;
+                yield break;
+            }
+
+            var holdDuration = Mathf.Max(0.1f, offlineNoticeHoldDuration);
+            var fadeDuration = Mathf.Max(0.1f, offlineNoticeFadeDuration);
+            var elapsed = 0f;
+            while (elapsed < holdDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            elapsed = 0f;
+            while (elapsed < fadeDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                var normalized = Mathf.Clamp01(elapsed / fadeDuration);
+                offlineRewardNoticeCanvasGroup.alpha = 1f - normalized;
+                yield return null;
+            }
+
+            offlineRewardNoticeCanvasGroup.alpha = 0f;
+            offlineRewardNoticeText.gameObject.SetActive(false);
+            offlineRewardNoticeCoroutine = null;
+        }
+
+        private void LogOfflineRewardSummary(
+            long elapsedSeconds,
+            long appliedElapsedSeconds,
+            long capSeconds,
+            bool rewardWasTimeCapped,
+            int rewardAmount)
+        {
+            if (!logOfflineRewardSummary || elapsedSeconds <= 0)
+            {
+                return;
+            }
+
+            if (autoIncomePerSecond <= 0)
+            {
+                Debug.Log(
+                    $"[ClickerGame] Offline reward skipped. Elapsed={FormatDuration(elapsedSeconds)}, auto income is 0/s.");
+                return;
+            }
+
+            var capText = rewardWasTimeCapped
+                ? $" (capped from {FormatDuration(elapsedSeconds)} to {FormatDuration(appliedElapsedSeconds)}, cap={FormatDuration(capSeconds)})"
+                : string.Empty;
+            Debug.Log(
+                $"[ClickerGame] Offline reward +{rewardAmount}. Applied={FormatDuration(appliedElapsedSeconds)}, auto={autoIncomePerSecond}/s{capText}");
+        }
+
+        private static string FormatDuration(long totalSeconds)
+        {
+            var safeSeconds = Math.Max(0L, totalSeconds);
+            var duration = TimeSpan.FromSeconds(safeSeconds);
+
+            if (duration.TotalHours >= 1d)
+            {
+                return $"{(int)duration.TotalHours}h {duration.Minutes}m {duration.Seconds}s";
+            }
+
+            if (duration.TotalMinutes >= 1d)
+            {
+                return $"{duration.Minutes}m {duration.Seconds}s";
+            }
+
+            return $"{duration.Seconds}s";
         }
 
         private void LoadState()
@@ -663,7 +936,10 @@ namespace ClickerUnity
                 $"Gold: {currency}\nClick: +{Mathf.Max(0, clickValue)}\nAuto: +{Mathf.Max(0, autoIncomePerSecond)}/s";
             if (lastOfflineReward > 0)
             {
-                currencyText.text += $"\nOffline +{lastOfflineReward}";
+                var capText = lastOfflineRewardWasTimeCapped && lastOfflineCapSeconds > 0
+                    ? $" (Cap {FormatDuration(lastOfflineCapSeconds)})"
+                    : string.Empty;
+                currencyText.text += $"\nOffline +{lastOfflineReward}{capText}";
             }
         }
 
