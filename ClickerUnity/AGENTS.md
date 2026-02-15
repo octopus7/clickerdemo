@@ -1,4 +1,10 @@
-# Agent Rules
+# 에이전트 규칙
 
-- At the start of every task, read `PROJECT_DECISIONS.md` first if the file exists.
-- Respect all decisions in `PROJECT_DECISIONS.md` during planning, proposals, and implementation.
+- 모든 작업 시작 시 `PROJECT_DECISIONS.md`가 있으면 먼저 읽는다.
+- 계획, 제안, 구현 전 과정에서 `PROJECT_DECISIONS.md`의 결정사항을 준수한다.
+- 모든 작업 시작 시 `PROJECT_TASKS.md`가 있으면 읽고 현재 상태에 맞춰 작업한다.
+- 작업 완료 시 같은 변경 내에서 `PROJECT_TASKS.md` 상태를 갱신한다 (`대기`, `진행 중`, `완료`).
+- `AGENTS.md`와 `PROJECT_TASKS.md`는 한국어로 작성하고 유지한다.
+- 사소한 수정은 `PROJECT_TASKS.md`의 `사소한 수정` 섹션에 태스크 번호 없이 짧게 기록한다.
+- 기존 태스크의 오류 재수정은 `사소한 수정`이 아닌 해당 태스크 기준으로 관리한다.
+- 기존 태스크 오류 수정은 중요도 판단 후 필요 시 해당 태스크에 보완기록을 남긴다.

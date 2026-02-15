@@ -40,7 +40,7 @@ namespace ClickerUnity
         [SerializeField] private Vector2 offlineNoticePosition = new Vector2(0f, 320f);
         [SerializeField] private Vector2 offlineNoticeSize = new Vector2(960f, 120f);
         [SerializeField] private int offlineNoticeFontSize = 34;
-        [SerializeField] private float offlineNoticeHoldDuration = 2.8f;
+        [SerializeField] private float offlineNoticeHoldDuration = 5.6f;
         [SerializeField] private float offlineNoticeFadeDuration = 0.45f;
         [SerializeField] private Color offlineNoticeColor = new Color(0.99f, 0.84f, 0.45f, 1f);
         [SerializeField] private Color offlineNoticeCapReachedColor = new Color(1f, 0.58f, 0.22f, 1f);
@@ -84,6 +84,7 @@ namespace ClickerUnity
         public int ClickValue => clickValue;
         public int AutoIncomeLevel => autoIncomeLevel;
         public int AutoIncomePerSecond => autoIncomePerSecond;
+        public int CurrentCurrency => currency;
 
         private sealed class AutoIncomeToastView
         {
@@ -242,6 +243,38 @@ namespace ClickerUnity
         public bool CanAfford(int cost)
         {
             return currency >= Mathf.Max(0, cost);
+        }
+
+        public int GetMissingCurrencyForCost(int cost)
+        {
+            var safeCost = Mathf.Max(0, cost);
+            return Mathf.Max(0, safeCost - currency);
+        }
+
+        public int GetClickValueAtLevel(int level)
+        {
+            var safeLevel = Mathf.Max(1, level);
+            var safePerLevel = Mathf.Max(1, clickValuePerLevel);
+            var valueLong = (long)safeLevel * safePerLevel;
+            return valueLong >= int.MaxValue ? int.MaxValue : (int)valueLong;
+        }
+
+        public int GetAutoIncomeAtLevel(int level)
+        {
+            var safeLevel = Mathf.Max(1, level);
+            var safePerLevel = Mathf.Max(1, autoIncomePerLevel);
+            var valueLong = (long)safeLevel * safePerLevel;
+            return valueLong >= int.MaxValue ? int.MaxValue : (int)valueLong;
+        }
+
+        public int GetNextClickValue()
+        {
+            return GetClickValueAtLevel(clickLevel + 1);
+        }
+
+        public int GetNextAutoIncomePerSecond()
+        {
+            return GetAutoIncomeAtLevel(autoIncomeLevel + 1);
         }
 
         public bool TryUpgradeClickValue()
@@ -582,16 +615,12 @@ namespace ClickerUnity
 
         private void RecalculateClickValue()
         {
-            var safeLevel = Mathf.Max(1, clickLevel);
-            var safePerLevel = Mathf.Max(1, clickValuePerLevel);
-            clickValue = safeLevel * safePerLevel;
+            clickValue = GetClickValueAtLevel(clickLevel);
         }
 
         private void RecalculateAutoIncomePerSecond()
         {
-            var safeLevel = Mathf.Max(1, autoIncomeLevel);
-            var safePerLevel = Mathf.Max(1, autoIncomePerLevel);
-            autoIncomePerSecond = safeLevel * safePerLevel;
+            autoIncomePerSecond = GetAutoIncomeAtLevel(autoIncomeLevel);
         }
 
         private void NotifyEconomyChanged()

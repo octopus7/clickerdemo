@@ -54,11 +54,6 @@ namespace ClickerUnity
 
         public void Refresh()
         {
-            if (upgradeButtonLabel != null)
-            {
-                upgradeButtonLabel.text = "Upgrade";
-            }
-
             if (clickerGame == null)
             {
                 if (currentLevelText != null)
@@ -68,7 +63,7 @@ namespace ClickerUnity
 
                 if (detailsText != null)
                 {
-                    detailsText.text = "Effect: -   Next Cost: -";
+                    detailsText.text = "Effect: - -> - | Cost: - | Eff: -";
                 }
 
                 if (upgradeButton != null)
@@ -76,12 +71,22 @@ namespace ClickerUnity
                     upgradeButton.interactable = false;
                 }
 
+                if (upgradeButtonLabel != null)
+                {
+                    upgradeButtonLabel.text = "Unavailable";
+                }
+
                 return;
             }
 
             var currentLevel = clickerGame.AutoIncomeLevel;
             var currentEffect = clickerGame.AutoIncomePerSecond;
+            var nextEffect = clickerGame.GetNextAutoIncomePerSecond();
+            var effectGain = Mathf.Max(0, nextEffect - currentEffect);
             var nextCost = clickerGame.GetAutoIncomeUpgradeCost();
+            var canAfford = clickerGame.CanAfford(nextCost);
+            var missingCurrency = clickerGame.GetMissingCurrencyForCost(nextCost);
+            var efficiency = nextCost > 0 ? (float)effectGain / nextCost : 0f;
 
             if (currentLevelText != null)
             {
@@ -90,12 +95,24 @@ namespace ClickerUnity
 
             if (detailsText != null)
             {
-                detailsText.text = $"Effect: +{currentEffect}/s   Next Cost: {nextCost}";
+                var summary =
+                    $"Effect: +{currentEffect}/s -> +{nextEffect}/s (Delta +{effectGain}) | Cost: {nextCost} | Eff: {efficiency:0.###}";
+                if (!canAfford && missingCurrency > 0)
+                {
+                    summary += $" | Need +{missingCurrency} Gold";
+                }
+
+                detailsText.text = summary;
             }
 
             if (upgradeButton != null)
             {
-                upgradeButton.interactable = clickerGame.CanAfford(nextCost);
+                upgradeButton.interactable = canAfford;
+            }
+
+            if (upgradeButtonLabel != null)
+            {
+                upgradeButtonLabel.text = canAfford ? "Upgrade" : $"Need {missingCurrency}";
             }
         }
 
