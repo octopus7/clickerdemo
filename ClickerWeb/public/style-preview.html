@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Style Preview</title>
+    <style>
+      :root {
+        --bg: #f5f1e7;
+        --panel: #fff9ef;
+        --line: #ddc7ab;
+        --text: #2f2218;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Trebuchet MS, Segoe UI, sans-serif;
+        color: var(--text);
+        background: linear-gradient(150deg, #f3eddf, #f9e2c4);
+      }
+      main {
+        width: min(1280px, calc(100% - 2rem));
+        margin: 1rem auto 2rem;
+      }
+      h1 {
+        margin: 0 0 0.4rem;
+      }
+      p {
+        margin: 0 0 1rem;
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.8rem;
+      }
+      .card h2 {
+        margin: 0 0 0.6rem;
+        font-size: 1.1rem;
+      }
+      img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        border: 1px solid #d5baa0;
+        display: block;
+      }
+      @media (min-width: 1080px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Tiger Clicker Style Samples</h1>
+      <p>Use this page to compare two temporary art directions before generating batch placeholders.</p>
+      <div class="grid">
+        <section class="card">
+          <h2>Option A: Cute Flat</h2>
+          <img src="/assets/examples/style-cute-flat.svg" alt="Cute flat style sample" />
+        </section>
+        <section class="card">
+          <h2>Option B: Hand Drawn</h2>
+          <img src="/assets/examples/style-handdrawn.svg" alt="Hand-drawn style sample" />
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

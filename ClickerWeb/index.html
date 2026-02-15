@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>호랑이 떡공장 클릭커</title>
+  </head>
+  <body>
+    <div class="bg-shape bg-shape-a"></div>
+    <div class="bg-shape bg-shape-b"></div>
+    <div class="bg-shape bg-shape-c"></div>
+
+    <div id="app">
+      <header class="panel topbar">
+        <div>
+          <p class="eyebrow">Tiger Tteok Factory</p>
+          <h1>호랑이 떡공장</h1>
+        </div>
+        <div class="gold-wrap">
+          <p class="label">보유 자금</p>
+          <p id="gold" class="gold">0 냥</p>
+        </div>
+      </header>
+
+      <p id="offline-note" class="offline-note hidden"></p>
+
+      <main class="layout-grid">
+        <section class="panel click-panel">
+          <h2>반죽 터치</h2>
+          <button id="click-button" class="big-action">🐯 반죽 치대기</button>
+          <p id="click-count" class="muted">총 클릭 0회</p>
+
+          <div class="queue-box">
+            <p class="label">판매 큐</p>
+            <p id="sell-queue" class="queue-value">0</p>
+            <button id="flush-button" class="flush-button">🚚 판매 Flush</button>
+          </div>
+          <p id="flush-feedback" class="muted"></p>
+        </section>
+
+        <section class="panel pipeline-panel">
+          <h2>공정 현황</h2>
+          <div id="stage-metrics" class="stage-metrics"></div>
+        </section>
+
+        <section class="panel upgrade-panel">
+          <h2>업그레이드</h2>
+          <div id="upgrade-list" class="upgrade-list"></div>
+          <div class="brand-box">
+            <button id="brand-button" class="brand-button"></button>
+            <p id="brand-level" class="muted"></p>
+          </div>
+        </section>
+
+        <section class="panel system-panel">
+          <h2>시스템</h2>
+          <div class="system-actions">
+            <button id="save-button">저장</button>
+            <button id="reset-button" class="danger">초기화</button>
+          </div>
+          <p id="save-status" class="muted">자동저장 5초</p>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
