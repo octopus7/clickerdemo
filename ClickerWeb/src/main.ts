@@ -4,7 +4,6 @@ import {
   AUTO_SAVE_MS,
   FIXED_STEP_SECONDS,
   OFFLINE_CAP_MS,
-  STAGE_ICONS,
   STAGE_LABELS
 } from "./game/config";
 import {
@@ -25,6 +24,13 @@ import {
 import { formatDuration, formatNumber, formatRate } from "./game/format";
 import { clearSave, loadGame, saveGame } from "./game/save";
 import { STAGES, type GameState, type Stage } from "./game/types";
+
+const STAGE_ASSET: Record<Stage, string> = {
+  dough: "/assets/cute-flat/stage-dough.svg",
+  steam: "/assets/cute-flat/stage-steam.svg",
+  pack: "/assets/cute-flat/stage-pack.svg",
+  dispatch: "/assets/cute-flat/stage-dispatch.svg"
+};
 
 function byId<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -57,7 +63,10 @@ const stageMetrics = byId<HTMLDivElement>("stage-metrics");
 stageMetrics.innerHTML = STAGES.map(
   (stage) => `
     <article class="stage-card" id="card-${stage}">
-      <p class="stage-title">${STAGE_ICONS[stage]} ${STAGE_LABELS[stage]}</p>
+      <div class="stage-head">
+        <img class="stage-icon" src="${STAGE_ASSET[stage]}" alt="" />
+        <p class="stage-title">${STAGE_LABELS[stage]}</p>
+      </div>
       <p class="stage-value" id="stock-${stage}">0</p>
       <p class="stage-sub">처리속도 <span id="rate-${stage}">0/s</span></p>
       <p class="stage-sub">호랑이 <span id="tigers-${stage}">0</span> · 설비 Lv.<span id="machine-${stage}">0</span></p>
@@ -69,7 +78,13 @@ const upgradeList = byId<HTMLDivElement>("upgrade-list");
 upgradeList.innerHTML = STAGES.map(
   (stage) => `
     <article class="upgrade-row">
-      <p class="upgrade-name">${STAGE_LABELS[stage]}</p>
+      <div class="upgrade-name-wrap">
+        <img class="upgrade-badge" src="/assets/cute-flat/upgrade-tiger-badge.svg" alt="" />
+        <div>
+          <p class="upgrade-name">${STAGE_LABELS[stage]}</p>
+          <p class="upgrade-sub">작업 라인 강화</p>
+        </div>
+      </div>
       <button id="hire-${stage}" class="small-button"></button>
       <button id="machine-btn-${stage}" class="small-button"></button>
     </article>
@@ -79,6 +94,7 @@ upgradeList.innerHTML = STAGES.map(
 const goldElement = byId<HTMLElement>("gold");
 const offlineNote = byId<HTMLElement>("offline-note");
 const clickButton = byId<HTMLButtonElement>("click-button");
+const doughVisual = byId<HTMLElement>("dough-visual");
 const clickCount = byId<HTMLElement>("click-count");
 const queueElement = byId<HTMLElement>("sell-queue");
 const flushButton = byId<HTMLButtonElement>("flush-button");
@@ -139,7 +155,7 @@ function render(): void {
 
   goldElement.textContent = `${formatNumber(state.gold, 0)} 냥`;
   clickCount.textContent = `총 클릭 ${formatNumber(state.totalClicks, 0)}회`;
-  queueElement.textContent = `${formatNumber(state.sellQueue, 1)} 개`;
+  queueElement.textContent = `${formatNumber(Math.floor(state.sellQueue), 0)} 개`;
 
   for (const stage of STAGES) {
     stockElements[stage].textContent = formatNumber(mapStageToBuffer(state, stage), 1);
@@ -170,6 +186,7 @@ function render(): void {
 clickButton.addEventListener("click", () => {
   applyClick(state);
   popOnce(clickButton);
+  popOnce(doughVisual);
   popOnce(cardElements.dough);
 });
 

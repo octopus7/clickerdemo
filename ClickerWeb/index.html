@@ -6,17 +6,21 @@
     <title>호랑이 떡공장 클릭커</title>
   </head>
   <body>
-    <div class="bg-shape bg-shape-a"></div>
-    <div class="bg-shape bg-shape-b"></div>
-    <div class="bg-shape bg-shape-c"></div>
-
     <div id="app">
       <header class="panel topbar">
-        <div>
-          <p class="eyebrow">Tiger Tteok Factory</p>
-          <h1>호랑이 떡공장</h1>
+        <div class="topbar-left">
+          <img
+            class="header-mascot"
+            src="/assets/cute-flat/mascot-tiger.svg"
+            alt="호랑이 마스코트"
+          />
+          <div>
+            <p class="eyebrow">Tiger Tteok Factory</p>
+            <h1>호랑이 떡공장</h1>
+          </div>
         </div>
-        <div class="gold-wrap">
+        <div class="gold-wrap panel-chip">
+          <img class="coin-icon" src="/assets/cute-flat/coin-nyang.svg" alt="" />
           <p class="label">보유 자금</p>
           <p id="gold" class="gold">0 냥</p>
         </div>
@@ -27,13 +31,17 @@
       <main class="layout-grid">
         <section class="panel click-panel">
           <h2>반죽 터치</h2>
-          <button id="click-button" class="big-action">🐯 반죽 치대기</button>
+          <div class="click-hero">
+            <img id="dough-visual" class="dough-visual" src="/assets/cute-flat/click-dough.svg" alt="반죽" />
+            <p class="dough-hint">호랑이와 함께 반죽을 치대서 생산을 밀어줘요</p>
+          </div>
+          <button id="click-button" class="big-action">반죽 치대기</button>
           <p id="click-count" class="muted">총 클릭 0회</p>
 
           <div class="queue-box">
             <p class="label">판매 큐</p>
             <p id="sell-queue" class="queue-value">0</p>
-            <button id="flush-button" class="flush-button">🚚 판매 Flush</button>
+            <button id="flush-button" class="flush-button">판매 Flush</button>
           </div>
           <p id="flush-feedback" class="muted"></p>
         </section>
